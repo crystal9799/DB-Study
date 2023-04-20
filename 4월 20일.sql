@@ -172,11 +172,129 @@ select * from user_constraints where lower(table_name)='temp9';
 --alter table temp9
 --add constraint pk_temp9_id primary key(id,num); -- 복합키
 --유일한 한개의 row >> where id=100 and num=1
- 
+
+--컬럼추가
+alter table temp9
+add ename varchar2(50);
+
+desc temp9;
+
+--ename 칼럼에 not null 추가
+alter table temp9
+modify(ename not null);
+
+desc temp9; --ENAME NOT NULL VARCHAR2(50)
+
+--------------------------------------------------------------------------------
+--check 제약 (업무 규칙 : where 조건을 쓰는 것 처럼)
+--Where gender in ('남' , '여')
+create table temp10(
+    id number constraint pk_temp10_id primary key,
+    name varchar2(20) not null,
+    jumin char(6) not null constraint uk_temp10_jumin unique,
+    addr varchar2(30),
+    age number constraint ck_temp10_age check(age >= 19) --where age >=19
+);
+
+select * from user_constraints where table_name = 'TEMP10';
+
+insert into temp10(id,name,jumin,addr,age)
+values(100,'홍길동','123456','서울시 강남구',20);
+
+insert into temp10(id,name,jumin,addr,age)
+values(200,'아무개','234567','서울시 강남구',18);
+--ORA-02290: check constraint (KOSA.CK_TEMP10_AGE) violated
 
 
+select * from temp10;
+
+--------------------------------------------------------------------------------
+--FORIGN KEY(FK) : 열과 참조된 열 사이의 외래키 관계를 적용하고 설정합니다.
+--참조제약 (테이블과 테이블과의 관계 설정)
+
+create table c_emp
+as
+    select empno , ename , deptno from emp where 1=2;
+    
+select * from c_emp;
+
+create table c_dept
+as
+    select deptno , dname from dept where 1=2;
+    
+select * from c_dept;
+
+desc c_emp;
+desc c_dept;
+--c_emp 테이블에 있는 deptno 컬럼의 데이터는 c_dept 테이블에 있는 deptno 컬럼에 있는 데이터만
+--쓰겠다
+
+--강제 (FK)
+
+--c_dept 의 deptno 컬럼이 신용이 없어요 (PK나 UNIQUE)
+--alter table c_emp
+--add constraint fk_c_emp_deptno foreign key(deptno) references c_dept(deptno);
+
+alter table c_dept
+add constraint pk_c_dept_deptno primary key(deptno);
+
+--그리고 나서 참조제약
+alter table c_emp
+add constraint fk_c_emp_deptno foreign key(deptno) references c_dept(deptno);
 
 
+select * from user_constraints where table_name = 'C_DEPT';
+select * from user_constraints where table_name = 'C_EMP';
+
+
+--부서
+insert into c_dept(deptno,dname) values(100,'인사팀');
+insert into c_dept(deptno,dname) values(200,'관리팀');
+insert into c_dept(deptno,dname) values(300,'회계팀');
+commit;
+
+select * from c_dept;
+
+--신입사원 입사
+insert into c_emp(empno,ename,deptno)
+values(1,'신입이',100);
+
+select * from c_emp;
+
+insert into c_emp(empno,ename,deptno)
+values(2,'아무개',101);
+--ORA-02291: integrity constraint (KOSA.FK_C_EMP_DEPTNO) violated - parent key not found
+
+commit;
+--------------------------------------------------------------------------------
+--제약 END----------------------------------------------------------------------
+
+--개발자 관점에서 FK 살펴보기--
+--MASTER DETAIL 관계
+--부모 - 자식 관계
+
+--c_emp과 c_dept (관계 FK) >> c_emp(deptno) 컬럼이 c_dept(deptno) 컬럼을 참조
+--FK 관계 : master(c_dept) - detail(c_emp) >> 화면 (부서 출력) >> 부서번호 클릭 >> 사원정보 출력
+--deptno 참조 관계 부모(c_dept) - 자식(c_emp)
+
+--관계 PK가지고 있는 쪽 (master) , FK (detail)
+
+select * from c_dept;
+
+select * from c_emp;
+
+--1. 위 상황에서 c_emp 테이블에 있는 신입이를 삭제할 수 있을 까요? 
+delete from c_dept where deptno=100;
+delete from c_emp where empno=100;
+
+delete from c_dept where deptno=200; -- 삭제 가능 (c_emp가 빌려쓰고 있지 않아요)
+
+delete from c_dept where deptno=100;
+delete from c_emp where empno=1; -- 참조하지 않게 . . . .
+
+--자식 삭제
+--부모 삭제 하시면 됩니다.
+commit;
 
 
 
