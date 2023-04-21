@@ -296,9 +296,260 @@ delete from c_emp where empno=1; -- 참조하지 않게 . . . .
 --부모 삭제 하시면 됩니다.
 commit;
 
+/*
+column datatype [CONSTRAINT constraint_name]
+ REFERENCES table_ name (column1[,column2,..] [ON DELETE CASCADE])
+ 
+ ON DELETE CASCADE 부모 테이블과 생명을 같이 하겠다
+ 
+ alter table c_emp
+ add constraint fk_c_emp_deptno foreign key(deptno) fererences c_dept(deptno) on delete cascade;
+ 
+ delete from c_emp where empno=1 >> deptno >> 100번
+ 
+ delete from c_dept where deptno=100; 삭제 안되요 (참조하고 있으니까)
+ on delete cascade 걸면 삭제되요
+ 
+ 부모삭제 >> 참조하고 있는 자식도 삭제
+ 
+ Oracle
+ ON DELETE CASCADE 만 존재
+ 
+ MS-SQL
+ ON DELETE CASCADE
+ ON UPDATE CASCADE
+*/
 
 
+create table grade(
+    stuno number constraint pk_grade_stuno primary key,
+    name varchar2(10) not null ,
+    kor number default 0,
+    eng number default 0,
+    math number default 0,
+    deptno number,
+    total number GENERATED ALWAYS as (kor+eng+math) VIRTUAL,
+    avg number GENERATED ALWAYS as ((kor+eng+math)/3) VIRTUAL
+);
+select * from grade;
 
+create table stu_dept(
+    deptno number constraint pk_dept_deptno primary key,
+    dname varchar2(10) not null
+);
+select * from stu_dept;
+
+insert into grade(kor,eng,math,stuno,name,deptno) values(10,20,30,400,'홍길동',10);
+insert into grade(kor,eng,math,stuno,name,deptno) values(44,22,33,500,'길동',20);
+insert into grade(kor,eng,math,stuno,name,deptno) values(55,66,33,600,'동',30);
+
+insert into stu_dept(deptno,dname) values(10,'컴퓨터');
+insert into stu_dept(deptno,dname) values(20,'기계');
+insert into stu_dept(deptno,dname) values(30,'전자');
+
+alter table grade
+add constraint fk_grade_deptno foreign key(deptno) references stu_dept(deptno);
+
+
+select g.stuno, g.name, g.total, g.avg, g.deptno, s.dname
+from grade g join stu_dept s
+on g.deptno = s.deptno;
+
+--------------------------------------------------------------------------------
+--여기까지가 초급 과정 END--
+--제 12장 VIEW (초중급)
+--가상 테이블 (subquery >> in line view >> from())
+--필요한 가상테이블을 객체형태로 만들기 (염속적으로)
+
+/*
+CREATE [OR REPLACE] [FORCE | NOFORCE] VIEW view_name [(alias[,alias,...])]
+AS Subquery 
+[WITH CHECK OPTION [CONSTRAINT constraint ]]
+[WITH READ ONLY]
+
+옵션
+OR REPLACE 이미 존재한다면 다시 생성한다.
+FORCE Base Table 유무에 관계없이 VIEW 을 만든다.
+NOFORCE 기본 테이블이 존재할 경우에만 VIEW 를 생성한다.
+view_name VIEW 의 이름
+Alias Subquery 를 통해 선택된 값에 대한 Column 명이 된다.
+Subquery SELECT 문장을 기술한다.
+WITH CHECK OPTION VIEW 에 의해 액세스 될 수 있는 행만이 입력,갱신될 수 있다. 
+Constraint CHECK OPTON 제약 조건에 대해 지정된 이름이다.
+WITH READ ONLY 이 VIEW 에서 DML 이 수행될 수 없게 한다.
+*/
+
+-- SYSTEM PRIVILEGES
+--GRANT CREATE ANY VIEW TO "KOSA" WITH ADMIN OPTION;
+
+create view view001
+as 
+    select * from emp;
+
+--view001 이라는 객체가 생성 되었어요. (가상 테이블 >> 쿼리 문장을 가지고 있는 객체)
+--이 객체는 테이블처럼 사용할 수 있는 객체 
+
+select * from view001; 
+select * from view001 where deptno=20;
+
+--VIEW (가상 테이블)
+--사용법 : 일반 테이블과 동일 (select , insert , update , delete)
+--단 VIEW가 볼 수 있는 데이터에 한해서만
+--VIEW 통해서 원본 테이블에 insert , update , delete (DML) 가능 . . . 가능정도만 . . .
+
+--view 목적
+--1. 개발자의 편의성 : join , subquery 복잡한 쿼리 미리 생성해두었다가 사용
+--2. 쿼리 단순화 : view생성해서 JOIN 편리성
+--3. DBA 보안 : 원본테이블은 노출하지 않고 , VIEW 만들어서 제공 (특정 컬럼을 노출하지 않는다)
+
+create or replace view v_001
+as
+    select empno,ename from emp;
+
+select * from v_001;
+
+create or replace view v_emp
+as
+    select empno , ename , job , hiredate from emp;
+    
+--신입이 . . . . v_emp
+select * from v_emp;
+
+select * from v_emp where job = 'CLERK';
+
+--편리성
+create or replace view v_002
+as
+    select e.empno , e.ename , e.deptno , d.dname
+    from emp e join dept d
+    on e.deptno = d.deptno;
+
+select * from v_002;    
+
+--직종별 평균 급여를 볼 수 있는 view 작성 (객체) --객체를 drop 하지 않는한 영속적 . . .
+create or replace view v_003
+as
+    select deptno, trunc(avg(sal),0) as avgsal from emp group by deptno;
+
+select e.empno, e.ename, e.deptno, m.avgsal , e.sal
+from emp e join v_003 m
+on e.deptno = m.deptno
+where e.sal > m.avgsal;
+
+/*
+view 나름 테이블(가상) view를 (통해서) view가 [볼 수 있는] 데이터에 대해서
+DML (insert , update , delete) 가능 . . . .
+*/
+/*
+create or replace view v_emp
+as
+    select empno, ename , job , hiredate from emp;
+*/
+select * from v_emp;
+
+update v_emp
+set sal = 0;
+--sal은 뷰가 볼 수 없는 데이터
+
+update v_emp
+set job = 'IT';
+--실제로는 원본 emp 테이블에 있는 데이터가 업데이트
+select * from emp;
+rollback;
+
+/*
+30번 부서 사원들의 직종, 이름, 월급을 담는 view를 만드는데,
+각각의 컬럼명을 직종, 사원이름, 월급으로 alia를 주고 월급이
+300보다 많은 사원들만 추출하도록 해라 . view
+
+부서별 평균월급을 담는 view룰 만들되, 평균월급이 2000이상인
+부서만 출력하도록 하라. view102
+*/
+
+create or replace view view101
+as
+    select job as 직종, ename as 사원이름, sal as 월급 from emp where sal>300 and deptno=30;
+    
+select * from view101;
+
+create or replace view view102
+as
+    select deptno, avg(sal) as avgsal
+    from emp
+    group by deptno
+    having avg(sal) >= 2000;
+
+select * from view102;
+--------------------------------------------------------------------------------
+--기본 QUERY END-----------------------------------------------------------------
+--개발자 관점
+
+select * from employees;
+select * from departments;
+select * from locations;
+
+/*
+부서별 담당자의 부하직원들의 사번, 이름(Last_name), 부서번호, 월급, 부서 이름을 출력하세요. 
+단 담당자는 제외하세요.
+*/
+create or replace view view_s
+as
+    select manager_id 
+    from departments 
+    where manager_id is not null;
+
+select * from view_s;
+
+select e.manager_id, e.employee_id, e.last_name, e.department_id, e.salary, d.department_name
+from employees e join departments d
+                 on e.department_id=d.department_id
+where e.employee_id not in (select manager_id from departments where manager_id is not null)
+group by e.manager_id, e.employee_id, e.last_name, e.department_id, e.salary, d.department_name
+order by e.manager_id;
+
+/*
+부서의 소재지가 미국인 직원중 본인의 부서 평균 월급보다 높은 직원을 추출하고
+이름, 월급, 부서번호, 부서이름, 도시이름을 월급이 높은 순으로 출력하세요.
+단 이름은 성과 이름이 모두 한 칼럼에 출력되어야 한다 
+*/
+
+select to_char(e.first_name+e.last_name), e.sal, d.deptno,d.dname 
+from department d join employees e
+                  on e.deptno=d.deptno
+                  join locations l
+                  on d.location_id=l.location_id
+where l.country_id = 'US';
+     
+/*
+자신의 급여가 부서별 평균 급여보다 많고 이름에 ‘A’가 들어가는 사원들 중 가장 많은 country_ID의 급여 평균을 출력하라.
+*/
+select * from employees;
+select * from departments;
+select * from locations;
+
+--country_id 개수 카운트
+select country_id , count(country_id)
+from locations
+group by country_id;
+
+select * from v_avg;
+--부서 평균 급여
+
+select department_id, trunc(avg(salary),0) as avgsal 
+from employees
+group by department_id;
+--
+select m.avgsal
+from employees e join (select department_id, trunc(avg(salary),0) as avgsal from employees group by department_id) m
+on e.department_id = m.department_id;
+
+select a.avgsal
+from departments m join locations l 
+                  on m.location_id=l.location_id
+                  join (select department_id, trunc(avg(salary),0) as avgsal from employees group by department_id) a
+                  on m.department_id = a.department_id
+                  join employees e
+                  on m.department_id=e.department_id;
 
 
 
