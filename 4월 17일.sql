@@ -1706,9 +1706,25 @@ commit;
 --------------------------------------------------------------------------------
 --DELETE END--------------------------------------------------------------------
 
+--DDL
 
+select * from tab;
+
+select * from tab where tname = lower('board');
+
+create table board(
+    boardid number,
+    title nvarchar2(50),
+    content nvarchar2(2000),
+    regdate date
+);
  
-
+desc board;
+--Tip)
+select * from user_tables where lower(table_name) = 'board';
+select * from col where lower(tname) = 'board';
+--제약정보 확인하기 (반드시)
+select * from user_constraints where lower(table_name) = 'emp';
 
 
 
