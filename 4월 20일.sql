@@ -550,8 +550,26 @@ from departments m join locations l
                   on m.department_id = a.department_id
                   join employees e
                   on m.department_id=e.department_id;
+--------------------------------------------------------------------------------
+create table test(
+    phone nvarchar2(13)
+);
 
+select * from emp where regexp_like(ename,'(A-C)');
 
+--------------------------------------------------------------------------------
+show user;
 
+create table dmlemp
+as 
+    select * from emp;
+    
+select * from dmlemp;
 
+select * from user_constraints where table_name='DMLEMP';
 
+alter table dmlemp
+add constraint pk_dmlemp_empno primary key(empno);
+
+select * from dmlemp;
+commit;

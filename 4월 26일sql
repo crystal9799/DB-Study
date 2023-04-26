@@ -1,0 +1,84 @@
+/*
+프로시져 생성
+
+Emp테이블에서 날짜 2개를 받아서 날짜 사이에 해당되는 사원의
+사번 , 이름 , 급여 , 입사일을 출력하는 프로시져
+
+parameter (input)
+1. 시작날짜
+2. 끝날짜
+3. list_cursor out SYS_REFCURSOR
+*/
+
+select * from emp;
+
+create or replace procedure usp_getEmp
+(
+    vstartdate in varchar2,
+    vlastdate in varchar2,
+    list_cursor out SYS_REFCURSOR -- 약속된 표현
+)
+is
+    begin
+        open p_cursor FOR  
+        select empno, ename, sal, hiredate 
+        from EMP 
+        where hiredate between to_date(vsatrtdate,'YYYY-MM-DD') and to_date(vlastdate,'YYYY-MM-DD)
+        order by hiredate desc;
+        
+        exception
+        when others than
+            DBMS_OUTPUT.PUT_LINE('SQL ERROR MESSAGE: ' || SQLERRM);
+    end;
+        
+create or replace procedure usp_getEmpList
+(
+    s_hiredate in varchar2,
+    e_hiredate in varchar2, 
+    list_cursor out SYS_REFCURSOR --약속된 ...
+)
+is
+    begin
+        open list_cursor FOR
+        select empno,ename,job,sal , hiredate
+        from emp
+        where hiredate  between to_date(s_hiredate,'YYYY-MM-DD') and to_date(e_hiredate,'YYYY-MM-DD')
+        order by hiredate desc;
+        
+        exception
+        when others then
+            DBMS_OUTPUT.PUT_LINE('SQL ERROR MESSAGE: ' || SQLERRM);
+    end;
+    
+    --developer 에서 테스트 
+    var out_cursor REFCURSOR
+    exec usp_getEmpList('1980-01-01','1983-12-30',:out_cursor)
+    print out_cursor;
+/*
+                String proc_call = "{? = call emptest(?)}";
+                
+                // create callable statement
+                cstmt = conn.prepareCall(proc_call);
+
+                // key here is to register the output parameter
+                // of type cursor, execute, then cast it as a ResultSet.
+                cstmt.registerOutParameter(1, OracleTypes.CURSOR);
+                cstmt.setInt(2, 10);  //10번 부서의 데이터만 얻기 위해
+
+                cstmt.executeQuery();
+                rs = (ResultSet)cstmt.getObject(1);
+
+                while(rs.next()) {
+                        out.println(rs.getString("ename") + "<br>");
+                }
+
+*/
+    
+    
+        
+        
+        
+        
+        
+        
+        
